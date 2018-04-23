@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// the existance of this private method makes sense for testing only.
+// the existence of this private method makes sense for testing only.
 func (tm *timap) watchers() (total int) {
 	tm.timers.Range(func(key interface{}, value interface{}) bool {
 		total++
