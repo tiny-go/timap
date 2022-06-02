@@ -2,6 +2,7 @@ package timap
 
 import (
 	"context"
+	"sync"
 	"testing"
 )
 
@@ -21,12 +22,16 @@ func Test_CtxMap(t *testing.T) {
 		var (
 			m              = NewCtxMap()
 			callbackCalled bool
+			mu             sync.Mutex
 		)
 
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel() // cancel the context immediately
 
+		mu.Lock()
 		m.Store(ctx, "foo", "bar", func() {
+			defer mu.Unlock()
+
 			callbackCalled = true
 		})
 
@@ -39,6 +44,7 @@ func Test_CtxMap(t *testing.T) {
 			t.Error(`key "delete me" should not exist`)
 		}
 
+		mu.Lock()
 		if !callbackCalled {
 			t.Error(`callback was not called`)
 		}
