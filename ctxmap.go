@@ -9,7 +9,7 @@ import (
 // CtxMap stores provided key/value pairs with context.
 type CtxMap interface {
 	Load(key interface{}) (value interface{}, ok bool)
-	Store(ctx context.Context, key, value interface{})
+	Store(ctx context.Context, key, value interface{}, callbacks ...func())
 	Delete(key interface{})
 	Range(f func(key, value interface{}) bool)
 }
@@ -30,7 +30,8 @@ func NewCtxMap() CtxMap {
 	}
 }
 
-func (cm *contextMap) Store(parent context.Context, key, value interface{}) {
+// Store key/value pair with provided context. The pair will be deleted once the context is done.
+func (cm *contextMap) Store(parent context.Context, key, value interface{}, callbacks ...func()) {
 	ctx, cancel := context.WithCancel(parent)
 
 	if cancelFunc, ok := cm.cancels.Load(key); ok {
@@ -44,6 +45,10 @@ func (cm *contextMap) Store(parent context.Context, key, value interface{}) {
 		<-ctx.Done()
 		cm.Map.Delete(key)
 		cm.cancels.Delete(key)
+
+		for _, callback := range callbacks {
+			callback()
+		}
 	}()
 	// yields the processor, allowing other goroutines to run
 	// it gives a chance to a goroutine above to be started before we exit Sore() func

@@ -18,12 +18,17 @@ func (tm *contextMap) total() (total int) {
 
 func Test_CtxMap(t *testing.T) {
 	t.Run("Add temporrary key-value pair with cancelled context", func(t *testing.T) {
-		m := NewCtxMap()
+		var (
+			m              = NewCtxMap()
+			callbackCalled bool
+		)
 
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel() // cancel the context immediately
 
-		m.Store(ctx, "foo", "bar")
+		m.Store(ctx, "foo", "bar", func() {
+			callbackCalled = true
+		})
 
 		if total := m.(*contextMap).total(); total != 0 {
 			t.Errorf(`should not have conntain any vaslues but has %d`, total)
@@ -32,6 +37,10 @@ func Test_CtxMap(t *testing.T) {
 		_, ok := m.Load("delete me")
 		if ok {
 			t.Error(`key "delete me" should not exist`)
+		}
+
+		if !callbackCalled {
+			t.Error(`callback was not called`)
 		}
 	})
 
